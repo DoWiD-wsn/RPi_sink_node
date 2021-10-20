@@ -26,12 +26,18 @@ As stated by many researchers working with artificial immune systems (AIS), one 
 In our centralized DCA implementation, the sensor nodes' will act as a from of virtual tissue while the sink node performs the actions of a virtual thymus.
 Thereby, the following mapping is used:
 
-* **Antigens**: antigens refer to the entities/circumstances/etc. that need to be classified as either normal or anomalous; in our case, the classification refers to the proper operation of the sensor nodes and, thus, we use the sensor node's ID (lower 32-bit of the XBee MAC address) as antigens.
-* **PAMP**: the pathogen associated molecular pattern (PAMP) indicate a clear evidence of danger; in our case we use the reset source indicator X_RST as a node reset should not happen in regular operation and, thus, is a clear sign of dangerous circumstances.
-* **Danger**: the danger indicators express circumstances that are dangerous to the proper operation; we use our fault indicators as danger indicators where the final value is calculated as a weighted sum of the single indicators.
-* **Safe**: the safe indicator represents circumstances that show regular ("safe") operation; we use the sum of differences between the last sensor measurements and the current sensor update as safe indicator where a smaller difference results in a larger "safeness".
-* **IC**: the inflammatory cytokines (IC) indicate an already ongoing inflammation and accelerate the maturation of cells; currently, we do not use ICs in our setup. For future extensions, an already detected faulty sensor node (e.g., by a other/superior fault detection scheme) could be used as IC.
-* **Time windows**: we perform an online detection in a time-windowed manner. That is, there are always N dendritic cells active that have a lifespan of N iterations. In each iteration, one cell maturates (and "dies") while a new cell is born. Doing so, we get one cell with (semi)matured status every iteration that can be used to assign the context (normal/anomalous) to the latest sensor value update.
+* **Antigens**:  
+    antigens refer to the entities/circumstances/etc. that need to be classified as either normal or anomalous; in our case, the classification refers to the proper operation of the sensor nodes and, thus, we use the sensor node's ID (lower 32-bit of the XBee MAC address) as antigens.
+* **PAMP**:  
+    the pathogen associated molecular pattern (PAMP) indicate a clear evidence of danger; in our case we use the reset source indicator X_RST as a node reset should not happen in regular operation and, thus, is a clear sign of dangerous circumstances.
+* **Danger**:  
+    the danger indicators express circumstances that are dangerous to the proper operation; we use our fault indicators as danger indicators where the final value is calculated as a weighted sum of the single indicators.
+* **Safe**:  
+    the safe indicator represents circumstances that show regular ("safe") operation; we use the sum of differences between the last sensor measurements and the current sensor update as safe indicator where a smaller difference results in a larger "safeness".
+* **IC**:  
+    the inflammatory cytokines (IC) indicate an already ongoing inflammation and accelerate the maturation of cells; currently, we do not use ICs in our setup. For future extensions, an already detected faulty sensor node (e.g., by a other/superior fault detection scheme) could be used as IC.
+* **Time windows**:  
+    we perform an online detection in a time-windowed manner. That is, there are always N dendritic cells active that have a lifespan of N iterations. In each iteration, one cell maturates (and "dies") while a new cell is born. Doing so, we get one cell with (semi)matured status every iteration that can be used to assign the context (normal/anomalous) to the latest sensor value update.
 
 
 ## Program Execution ##
