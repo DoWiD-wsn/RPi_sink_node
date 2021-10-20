@@ -161,7 +161,7 @@ x_ic        = []
 x_adc       = []
 x_usart     = []
 # DCA signals
-PAMP        = []
+pamp        = []
 danger      = []
 safe        = []
 # Anomaly context
@@ -205,11 +205,15 @@ for row in entries:
     x_ic.append(round(float(row[13]),2))
     x_adc.append(round(float(row[14]),2))
     x_usart.append(round(float(row[15]),2))
-    
-    
+
+
 ##################################
 ##### Step 2 - signal update #####
 ##################################
+
+    pamp.append(0.0)
+    danger.append(0.0)
+    safe.append(0.0)
 
 
 ##########################################
@@ -220,6 +224,8 @@ for row in entries:
 #######################################
 ##### Step 4 - context assignment #####
 #######################################
+
+    context.append(0.0)
 
 
 ####################################
@@ -234,10 +240,10 @@ if db_con.is_connected():
 ### Save data to CSV file if required
 if CSV_OUTPUT:
     # Iterate over all data
-    for i in range(0,len(time)):
+    for i in range(len(time)):
         try:
             # Write a row to the CSV file
-            csv_o.writerow([snid[i], time[i], t_air[i], t_soil[i], h_air[i], h_soil[i], x_nt[i], x_vs[i], x_bat[i], x_art[i], x_rst[i], x_ic[i], x_adc[i], x_usart[i], PAMP[i], danger[i], safe[i], context[i]])
+            csv_o.writerow([snid[i], time[i], t_air[i], t_soil[i], h_air[i], h_soil[i], x_nt[i], x_vs[i], x_bat[i], x_art[i], x_rst[i], x_ic[i], x_adc[i], x_usart[i], pamp[i], danger[i], safe[i], context[i]])
         except Exception as e:
             print("Writing measurement data to the CSV file failed ... aborting!")
             print(e)
@@ -320,9 +326,10 @@ ax2.plot(time, x_rst, '-',  label=r"$\chi_{RST}$", linewidth=2, color="chocolate
 ax2.plot(time, x_ic, '-',  label=r"$\chi_{IC}$", linewidth=2, color="darkviolet")
 ax2.plot(time, x_adc, '-',  label=r"$\chi_{ADC}$", linewidth=2, color="darkorange")
 ax2.plot(time, x_usart, '-',  label=r"$\chi_{USART}$", linewidth=2, color="darkviolet")
-ax2.legend(loc='upper right', facecolor='white', framealpha=1)
+ax2.legend(framealpha=1, ncol=8, loc='upper center')
 
 ### Finish figure
+PLOT_FILE = "centralized_dca-%s-output.svg" % SNID
 plt.savefig(PLOT_FILE, transparent=True)
 plt.cla()
 plt.clf()
