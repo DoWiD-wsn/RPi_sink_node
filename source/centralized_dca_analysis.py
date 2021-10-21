@@ -46,14 +46,20 @@ import matplotlib.dates as md
 # dendritic cell lifetime/population
 DC_N            = 5
 # use the dDCA (otherwise DCA will be used)
-USE_DDCA        = 1
+USE_DDCA        = 0
 
+# use certain period (otherwise all data will be used)
+USE_PERIOD      = 0
 # Period to analyze
 p_start         = "2021-10-20 12:00:00"
 p_end           = "2021-10-21 12:00:00"
 
 # Sensor node ID (use single nodes for now)
-nodes           = ["41B9F864","41B9F805","41B9FFC2","41B9FFD8","41B9FFDD","41B9FD22","41BA26F1","41CC57CC","41CC3F83","41CC3E8F","41CC5591"]
+nodes           = [
+                    "41B9F864", # SNx
+                    "41B9F805","41B9FFC2","41B9FFD8","41B9FFDD","41B9FD22","41BA26F1", # SN1-SN6
+                    "41CC57CC","41CC3F83","41CC3E8F","41CC5591" # SN7-SN10
+                  ]
 
 # CSV output (0...disable/1...enable)
 CSV_OUTPUT      = 1
@@ -148,11 +154,12 @@ def get_delta(v1,v2):
 ##### Step 0 - initialization #####
 ###################################
 
-# Period (in UTC)
-start_utc = datetime.strptime(p_start,fmt) + timedelta(hours = -2)
-start_utc_str = start_utc.strftime(fmt)
-end_utc = datetime.strptime(p_end,fmt) + timedelta(hours = -2)
-end_utc_str = end_utc.strftime(fmt)
+if USE_PERIOD:
+    # Period (in UTC)
+    start_utc = datetime.strptime(p_start,fmt) + timedelta(hours = -2)
+    start_utc_str = start_utc.strftime(fmt)
+    end_utc = datetime.strptime(p_end,fmt) + timedelta(hours = -2)
+    end_utc_str = end_utc.strftime(fmt)
 
 # Try to connect to the database
 db_con = None
@@ -173,6 +180,24 @@ else:
         exit(-1)
 
 for SNID in nodes:
+    # Prepare query string
+    if USE_PERIOD:
+        query = "SELECT * FROM `sensordata` WHERE `snid` LIKE '" + SNID + "' AND (`dbtime` BETWEEN '" + start_utc_str + "' AND '" + end_utc_str + "') ORDER BY `id` ASC"
+    else:
+        query = "SELECT * FROM `sensordata` WHERE `snid` LIKE '" + SNID + "' ORDER BY `id` ASC"
+    # Execute query
+    try:
+        db_cur.execute(query)
+        entries = db_cur.fetchall()
+    except Exception as e:
+        print("Querying/fetching DB data didn't work ... aborting!")
+        print(e)
+        exit(-1)
+    # Check number of rows fetched
+    if len(entries)<1:
+        print("There was no data for \"%s\" ... skipping" % SNID)
+        continue
+
     # Prepare CSV file (if needed)
     if CSV_OUTPUT:
         CSV_FILE = "centralized_dca-%s-output.csv" % SNID
@@ -194,21 +219,6 @@ for SNID in nodes:
             print("Writing initial data to the CSV file failed ... aborting!")
             print(e)
             exit(-1)
-
-    # Prepare query string
-    query = "SELECT * FROM `sensordata` WHERE `snid` LIKE '" + SNID + "' AND (`dbtime` BETWEEN '" + start_utc_str + "' AND '" + end_utc_str + "') ORDER BY `id` ASC"
-    # Execute query
-    try:
-        db_cur.execute(query)
-        entries = db_cur.fetchall()
-    except Exception as e:
-        print("Querying/fetching DB data didn't work ... aborting!")
-        print(e)
-        exit(-1)
-    # Check number of rows fetched
-    if len(entries)<1:
-        print("There was no data to process ... aborting!")
-        exit(-1)
 
     # Prepare data arrays/lists/etc.
     snid        = []
@@ -323,8 +333,8 @@ for SNID in nodes:
             pamp2_t = 0.0
         # Get sum of weights
         pamp_w_sum = abs(pamp1_w) + abs(pamp2_w)
-        # Calcualte sum of pamp indicators scaled with sum of weights
-        pamp_t = (pamp1_t + pamp2_t) / pamp_w_sum
+        # Calcualte sum of pamp indicators
+        pamp_t = (pamp1_t + pamp2_t)
         # Add final PAMP to array
         pamp.append(pamp_t)
         
@@ -345,8 +355,8 @@ for SNID in nodes:
         danger7_t = x_usart_t * danger7_w
         # Calculate sum of weights
         danger_w_sum = abs(danger1_w) + abs(danger2_w) + abs(danger3_w) + abs(danger4_w) + abs(danger5_w) + abs(danger6_w) + abs(danger7_w)
-        # Calculate sum of danger indicators scaled with sum of weights
-        danger_t = (danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t) / danger_w_sum
+        # Calculate sum of danger indicators
+        danger_t = (danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t)
         # Add to array
         danger.append(danger_t)
         
