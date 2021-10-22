@@ -309,12 +309,20 @@ for SNID in nodes:
         ### ANTIGEN ###
         # use SNID as antigen
         antigen_t = SNID
+        # comment: does not allow spatial correlation of several nodes
+        
         ## or
+        
         # use combine hex fixed-point sensor values
         # antigen_t = "%04X%04X%04X%04X" % (float_to_fixed16_10to6(t_air_t),float_to_fixed16_10to6(t_soil_t),float_to_fixed16_10to6(h_air_t),float_to_fixed16_10to6(h_soil_t))
+        # comment: maybe quantize to correlate values that are close to each other?
+        
         ## or
+        
         # use 32-bit hash of sensor values as antigen
         # antigen_t = hashlib.sha1(("%04X%04X%04X%04X" % (float_to_fixed16_10to6(t_air_t),float_to_fixed16_10to6(t_soil_t),float_to_fixed16_10to6(h_air_t),float_to_fixed16_10to6(h_soil_t))).encode()).hexdigest()[:8].upper()
+        # comment: may not be the best way since an affinity measure is hard to implement for the hash
+        
         # Store antigen
         antigen.append(antigen_t)
         
