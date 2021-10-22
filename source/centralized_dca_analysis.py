@@ -45,8 +45,6 @@ import matplotlib.dates as md
 ##### GLOBAL VARIABLES #####
 # dendritic cell lifetime/population
 DC_N            = 5
-# use the dDCA (otherwise DCA will be used)
-USE_DDCA        = 0
 
 # use certain period (otherwise all data will be used)
 USE_PERIOD      = 0
@@ -63,33 +61,6 @@ nodes           = [
 
 # CSV output (0...disable/1...enable)
 CSV_OUTPUT      = 1
-
-# PAMP indicator weights
-pamp1_w         = 1
-pamp2_w         = 1
-# Danger indicator weights
-danger1_w       = 1
-danger2_w       = 1
-danger3_w       = 1
-danger4_w       = 1
-danger5_w       = 1
-danger6_w       = 1
-danger7_w       = 1
-# Safe indicator weights
-safe1_w         = 1
-safe2_w         = 1
-safe3_w         = 1
-safe4_w         = 1
-# DCA weights
-pamp_w_csm      = 1
-danger_w_csm    = 1
-safe_w_csm      = 2
-pamp_w_semi     = 0
-danger_w_semi   = 0
-safe_w_semi     = 3
-pamp_w_mat      = 2
-danger_w_mat    = 1
-safe_w_mat      = -3
 
 # DB CONNECTION
 DB_CON_HOST     = "192.168.13.98"
@@ -328,43 +299,39 @@ for SNID in nodes:
         
         ### PAMP ###
         # Use X_RST as PAMP1
-        pamp1_t = x_rst_t * pamp1_w
+        pamp1_t = x_rst_t
         # Use difference in the consecutive message counter as PAMP2
         if(i>0):
             # Check delta between message numbers
             if (sntime[i]-sntime[i-1]) != 1:
-                pamp2_t = 1.0 * pamp2_w
+                pamp2_t = 1.0
             else:
                 pamp2_t = 0.0
         else:
             # PAMP2 is zero
             pamp2_t = 0.0
-        # Get sum of weights
-        pamp_w_sum = abs(pamp1_w) + abs(pamp2_w)
         # Calcualte sum of pamp indicators
-        pamp_t = (pamp1_t + pamp2_t)
+        pamp_t = pamp1_t + pamp2_t
         # Add final PAMP to array
         pamp.append(pamp_t)
         
         ### DANGER ###
         # Use X_NT as danger1
-        danger1_t = x_nt_t * danger1_w
+        danger1_t = x_nt_t
         # Use X_VS as danger2
-        danger2_t = x_vs_t * danger2_w
+        danger2_t = x_vs_t
         # Use X_BAT as danger3
-        danger3_t = x_bat_t * danger3_w
+        danger3_t = x_bat_t
         # Use X_ART as danger4
-        danger4_t = x_art_t * danger4_w
+        danger4_t = x_art_t
         # Use X_IC as danger5
-        danger5_t = x_ic_t * danger5_w
+        danger5_t = x_ic_t
         # Use X_ADC as danger6
-        danger6_t = x_adc_t * danger6_w
+        danger6_t = x_adc_t
         # Use X_USART as danger7
-        danger7_t = x_usart_t * danger7_w
-        # Calculate sum of weights
-        danger_w_sum = abs(danger1_w) + abs(danger2_w) + abs(danger3_w) + abs(danger4_w) + abs(danger5_w) + abs(danger6_w) + abs(danger7_w)
+        danger7_t = x_usart_t
         # Calculate sum of danger indicators
-        danger_t = (danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t)
+        danger_t = danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t
         # Add to array
         danger.append(danger_t)
         
@@ -372,19 +339,15 @@ for SNID in nodes:
         safe_t = 0.0
         if(i>0):
             # Use Delta(t_air(t),t_air(t-1)) as safe signal1
-            safe1_t = get_delta(t_air[i],t_air[i-1]) * safe1_w
+            safe1_t = get_delta(t_air[i],t_air[i-1])
             # Use Delta(t_soil(t),t_soil(t-1)) as safe signal2
-            safe2_t = get_delta(t_soil[i],t_soil[i-1]) * safe2_w
+            safe2_t = get_delta(t_soil[i],t_soil[i-1])
             # Use Delta(h_air(t),h_air(t-1)) as safe signal3
-            safe3_t = get_delta(h_air[i],h_air[i-1]) * safe3_w
+            safe3_t = get_delta(h_air[i],h_air[i-1])
             # Use Delta(h_soil(t),h_soil(t-1)) as safe signal4
-            safe4_t = get_delta(h_soil[i],h_soil[i-1]) * safe4_w
-            # Calculate sum of weights
-            safe_w_sum = abs(safe1_w) + abs(safe2_w) + abs(safe3_w) + abs(safe4_w)
-            # Calculate sum of safe indicators
-            safe_t = (safe1_t + safe2_t + safe3_t + safe4_t) / safe_w_sum
+            safe4_t = get_delta(h_soil[i],h_soil[i-1])
             # Safe indicator is the higher with lower deltas
-            safe_t = 1.0 - safe_t
+            safe_t = 1.0 - (safe1_t + safe2_t + safe3_t + safe4_t)
             # Add to array
             safe.append(safe_t)
         else:
@@ -397,45 +360,21 @@ for SNID in nodes:
     ##########################################
         
         ##### dDCA #####
-        if USE_DDCA:
-            ### We use the PAMP as part of the danger signal ###
-            # CSM
-            csm = safe_t + (danger_t + 2*pamp_t)
-            # K
-            k = (danger_t + 2*pamp_t) - 2*safe_t
-            # Update previous DCs
-            for dc in dcs:
-                dc["csm"] = dc["csm"] + csm
-                dc["k"] = dc["k"] + k
-            # Create new DC
-            dcs.append({
-                "antigen": antigen_t,
-                "csm" : csm,
-                "k": k,
-            })
-        ##### DCA #####
-        else:
-            # CSM
-            csm_w_sum = abs(pamp_w_csm) + abs(safe_w_csm) + abs(danger_w_csm)
-            csm = ((pamp_t*pamp_w_csm) + (safe_t*safe_w_csm) + (danger_t*danger_w_csm)) / csm_w_sum
-            # SEMI-MATURE
-            semi_w_sum = abs(pamp_w_semi) + abs(safe_w_semi) + abs(danger_w_semi)
-            semi = ((pamp_t*pamp_w_semi) + (safe_t*safe_w_semi) + (danger_t*danger_w_semi)) / semi_w_sum
-            # MATURE
-            mat_w_sum = abs(pamp_w_mat) + abs(safe_w_mat) + abs(danger_w_mat)
-            mat = ((pamp_t*pamp_w_mat) + (safe_t*safe_w_mat) + (danger_t*danger_w_mat)) / mat_w_sum
-            # Update previous DCs
-            for dc in dcs:
-                dc["csm"] = dc["csm"] + csm
-                dc["semi"] = dc["semi"] + semi
-                dc["mat"] = dc["mat"] + mat
-            # Create new DC
-            dcs.append({
-                "antigen": antigen_t,
-                "csm" : csm,
-                "semi": semi,
-                "mat" : mat
-            })
+        ### We use the PAMP as part of the danger signal (double weight) ###
+        # CSM
+        csm = safe_t + (danger_t + 2*pamp_t)
+        # K
+        k = (danger_t + 2*pamp_t) - 2*safe_t
+        # Update previous DCs
+        for dc in dcs:
+            dc["csm"]   = dc["csm"] + csm
+            dc["k"]     = dc["k"] + k
+        # Create new DC
+        dcs.append({
+            "antigen"   : antigen_t,
+            "csm"       : csm,
+            "k"         : k,
+        })
         
 
     #######################################
@@ -446,20 +385,11 @@ for SNID in nodes:
         if len(dcs)>4:
             # Get ready DC
             dc = dcs.pop(0)
-            ##### dDCA #####
-            if USE_DDCA:
-                # Asses the DC's context
-                if (dc["k"]>0):
-                    context.append(1.0)
-                else:
-                    context.append(0.0)
-            ##### DCA #####
+            # Asses the DC's context
+            if (dc["k"]>0):
+                context.append(1.0)
             else:
-                # Asses the DC's context
-                if (dc["mat"]>dc["semi"]):
-                    context.append(1.0)
-                else:
-                    context.append(0.0)
+                context.append(0.0)
         else:
             context.append(0.0)
         
