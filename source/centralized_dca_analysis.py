@@ -337,6 +337,9 @@ for SNID in nodes:
         
         ### SAFE ###
         safe_t = 0.0
+        
+        # TODO: maybe take std-dev (N=5 or N=3) rather then simple delta?
+        
         if(i>0):
             # Use Delta(t_air(t),t_air(t-1)) as safe signal1
             safe1_t = get_delta(t_air[i],t_air[i-1])
