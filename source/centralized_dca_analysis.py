@@ -47,10 +47,10 @@ import matplotlib.dates as md
 DC_N            = 5
 
 # use certain period (otherwise all data will be used)
-USE_PERIOD      = 0
+USE_PERIOD      = 1
 # Period to analyze
-p_start         = "2021-10-20 12:00:00"
-p_end           = "2021-10-21 12:00:00"
+p_start         = "2021-10-25 14:00:00"
+p_end           = "2021-11-30 18:00:00"
 
 # Sensor node ID (use single nodes for now)
 nodes           = [
@@ -63,7 +63,7 @@ nodes           = [
 CSV_OUTPUT      = 1
 
 # DB CONNECTION
-DB_CON_HOST     = "192.168.13.98"
+DB_CON_HOST     = "10.128.211.4"
 DB_CON_USER     = "mywsn"
 DB_CON_PASS     = "$MyWSNdemo$"
 DB_CON_BASE     = "wsn_testbed"
@@ -288,12 +288,6 @@ for SNID in nodes:
         # antigen_t = "%04X%04X%04X%04X" % (float_to_fixed16_10to6(t_air_t),float_to_fixed16_10to6(t_soil_t),float_to_fixed16_10to6(h_air_t),float_to_fixed16_10to6(h_soil_t))
         # comment: maybe quantize to correlate values that are close to each other?
         
-        ## or
-        
-        # use 32-bit hash of sensor values as antigen
-        # antigen_t = hashlib.sha1(("%04X%04X%04X%04X" % (float_to_fixed16_10to6(t_air_t),float_to_fixed16_10to6(t_soil_t),float_to_fixed16_10to6(h_air_t),float_to_fixed16_10to6(h_soil_t))).encode()).hexdigest()[:8].upper()
-        # comment: may not be the best way since an affinity measure is hard to implement for the hash
-        
         # Store antigen
         antigen.append(antigen_t)
         
@@ -311,7 +305,7 @@ for SNID in nodes:
             # PAMP2 is zero
             pamp2_t = 0.0
         # Calcualte sum of pamp indicators
-        pamp_t = pamp1_t + pamp2_t
+        pamp_t = min(pamp1_t + pamp2_t, 1.0)
         # Add final PAMP to array
         pamp.append(pamp_t)
         
@@ -331,7 +325,7 @@ for SNID in nodes:
         # Use X_USART as danger7
         danger7_t = x_usart_t
         # Calculate sum of danger indicators
-        danger_t = danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t
+        danger_t = min(danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t, 1.0)
         # Add to array
         danger.append(danger_t)
         
@@ -350,7 +344,7 @@ for SNID in nodes:
             # Use Delta(h_soil(t),h_soil(t-1)) as safe signal4
             safe4_t = get_delta(h_soil[i],h_soil[i-1])
             # Safe indicator is the higher with lower deltas
-            safe_t = 1.0 - (safe1_t + safe2_t + safe3_t + safe4_t)
+            safe_t = max(1.0 - (safe1_t + safe2_t + safe3_t + safe4_t), 0.0)
             # Add to array
             safe.append(safe_t)
         else:
