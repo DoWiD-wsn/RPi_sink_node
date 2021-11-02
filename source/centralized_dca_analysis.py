@@ -49,8 +49,8 @@ DC_N            = 5
 # use certain period (otherwise all data will be used)
 USE_PERIOD      = 1
 # Period to analyze
-p_start         = "2021-10-25 14:00:00"
-p_end           = "2021-11-30 18:00:00"
+p_start         = "2021-10-25 12:00:00"
+p_end           = "2021-10-30 18:00:00"
 
 # Sensor node ID (use single nodes for now)
 nodes           = [
@@ -70,7 +70,8 @@ DB_CON_BASE     = "wsn_testbed"
 
 # Date/time format
 fmt             = '%Y-%m-%d %H:%M:%S'
-xfmt            = md.DateFormatter('%H:%M')
+xfmt            = md.DateFormatter('%m/%d %H')
+hour_int        = 12
 
 
 ##### METHODS #####################
@@ -110,13 +111,11 @@ def get_delta(v1,v2):
     # Check if both are equal
     if v1 == v2:
         return 0.0
-    # Check if at least one is bigger than zero
-    if (v1 != 0.0) or (v2 != 0.0):
-        base = abs(v1) if (v1 != 0.0) else abs(v2)
+    # Check if v1 is bigger than zero
+    if v1 == 0.0:
+        return 0.0
     # Calculate difference
-    delta = abs((t_air[i]) - (t_air[i-1]))
-    # Scale difference
-    #delta = delta / base
+    delta = abs((v1 - v2) / v1)
     # Return delta
     return delta
 
@@ -185,7 +184,7 @@ for SNID in nodes:
             exit(-1)
         # Write initial rows into the CSV file
         try:
-            csv_o.writerow(["snid [lower 32-bit of MAC]", "time [UNIX]", "T_air [°C]", "T_soil [°C]", "H_air [%RH]", "H_soil [%RH]", "x_nt",  "x_vs",  "x_bat",  "x_art",  "x_rst",  "x_ic",  "x_adc",  "x_usart", "antigen",  "PAMP",  "danger",  "safe", "context [0..1]"])
+            csv_o.writerow(["snid [lower 32-bit of MAC]", "time [UNIX]", "T_air [°C]", "T_soil [°C]", "H_air [%RH]", "H_soil [%RH]", "x_nt",  "x_vs",  "x_bat",  "x_art",  "x_rst",  "x_ic",  "x_adc",  "x_usart", "antigen",  "danger",  "safe", "context [0..1]"])
         except Exception as e:
             print("Writing initial data to the CSV file failed ... aborting!")
             print(e)
@@ -212,7 +211,6 @@ for SNID in nodes:
     x_usart     = []
     # DCA signals
     antigen     = []
-    pamp        = []
     danger      = []
     safe        = []
     # Anomaly context
@@ -291,24 +289,6 @@ for SNID in nodes:
         # Store antigen
         antigen.append(antigen_t)
         
-        ### PAMP ###
-        # Use X_RST as PAMP1
-        pamp1_t = x_rst_t
-        # Use difference in the consecutive message counter as PAMP2
-        if(i>0):
-            # Check delta between message numbers
-            if (sntime[i]-sntime[i-1]) != 1:
-                pamp2_t = 1.0
-            else:
-                pamp2_t = 0.0
-        else:
-            # PAMP2 is zero
-            pamp2_t = 0.0
-        # Calcualte sum of pamp indicators
-        pamp_t = min(pamp1_t + pamp2_t, 1.0)
-        # Add final PAMP to array
-        pamp.append(pamp_t)
-        
         ### DANGER ###
         # Use X_NT as danger1
         danger1_t = x_nt_t
@@ -318,22 +298,21 @@ for SNID in nodes:
         danger3_t = x_bat_t
         # Use X_ART as danger4
         danger4_t = x_art_t
-        # Use X_IC as danger5
-        danger5_t = x_ic_t
-        # Use X_ADC as danger6
-        danger6_t = x_adc_t
-        # Use X_USART as danger7
-        danger7_t = x_usart_t
+        # Use X_RST as danger5
+        danger5_t = x_rst_t
+        # Use X_IC as danger6
+        danger6_t = x_ic_t
+        # Use X_ADC as danger7
+        danger7_t = x_adc_t
+        # Use X_USART as danger8
+        danger8_t = x_usart_t
         # Calculate sum of danger indicators
-        danger_t = min(danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t, 1.0)
+        danger_t = danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t + danger8_t
         # Add to array
         danger.append(danger_t)
         
         ### SAFE ###
         safe_t = 0.0
-        
-        # TODO: maybe take std-dev (N=5 or N=3) rather then simple delta?
-        
         if(i>0):
             # Use Delta(t_air(t),t_air(t-1)) as safe signal1
             safe1_t = get_delta(t_air[i],t_air[i-1])
@@ -357,11 +336,10 @@ for SNID in nodes:
     ##########################################
         
         ##### dDCA #####
-        ### We use the PAMP as part of the danger signal (double weight) ###
         # CSM
-        csm = safe_t + (danger_t + 2*pamp_t)
+        csm = safe_t + danger_t
         # K
-        k = (danger_t + 2*pamp_t) - 2*safe_t
+        k = danger_t - 2*safe_t
         # Update previous DCs
         for dc in dcs:
             dc["csm"]   = dc["csm"] + csm
@@ -403,7 +381,7 @@ for SNID in nodes:
         for i in range(len(time)):
             try:
                 # Write a row to the CSV file
-                csv_o.writerow([snid[i], time[i], t_air[i], t_soil[i], h_air[i], h_soil[i], x_nt[i], x_vs[i], x_bat[i], x_art[i], x_rst[i], x_ic[i], x_adc[i], x_usart[i], antigen[i], pamp[i], danger[i], safe[i], context[i]])
+                csv_o.writerow([snid[i], time[i], t_air[i], t_soil[i], h_air[i], h_soil[i], x_nt[i], x_vs[i], x_bat[i], x_art[i], x_rst[i], x_ic[i], x_adc[i], x_usart[i], antigen[i], danger[i], safe[i], context[i]])
             except Exception as e:
                 print("Writing measurement data to the CSV file failed ... aborting!")
                 print(e)
@@ -433,7 +411,7 @@ for SNID in nodes:
     # grid
     ax1.grid(which='major', color='#CCCCCC', linestyle=':')
     # x-axis
-    ax1.xaxis.set_major_locator(md.HourLocator(interval = 12))
+    ax1.xaxis.set_major_locator(md.HourLocator(interval = hour_int))
     ax1.xaxis.set_minor_locator(AutoMinorLocator(2))
     ax1.set_xticklabels([])
     ax1b.set_xticklabels([])
@@ -468,7 +446,7 @@ for SNID in nodes:
     # grid
     ax2.grid(which='major', color='#CCCCCC', linestyle=':')
     # x-axis
-    ax2.xaxis.set_major_locator(md.HourLocator(interval = 12))
+    ax2.xaxis.set_major_locator(md.HourLocator(interval = hour_int))
     ax2.xaxis.set_minor_locator(AutoMinorLocator(2))
     ax2.set_xticklabels([])
     # y-axis
@@ -494,7 +472,7 @@ for SNID in nodes:
     # grid
     ax3.grid(which='major', color='#CCCCCC', linestyle=':')
     # x-axis
-    ax3b.xaxis.set_major_locator(md.HourLocator(interval = 12))
+    ax3b.xaxis.set_major_locator(md.HourLocator(interval = hour_int))
     ax3b.xaxis.set_minor_locator(AutoMinorLocator(2))
     ax3.set_xlabel('time [H:M]')
     ax3.xaxis.set_major_formatter(xfmt)
@@ -519,11 +497,10 @@ for SNID in nodes:
     ax3b.yaxis.set_major_locator(MultipleLocator(0.25))
     ax3b.yaxis.set_minor_locator(AutoMinorLocator(1))
     # plot data
-    lns1 = ax3.plot(time, pamp, '-',  label="PAMP", linewidth=1, color="red")
-    lns2 = ax3.plot(time, danger, '-',  label="danger", linewidth=1, color="orange")
-    lns3 = ax3.plot(time, safe, '-',  label="safe", linewidth=1, color="green")
-    lns4 = ax3b.plot(time, context, '-',  label="context", linewidth=1, color="blue")
-    lns = lns1+lns2+lns3+lns4
+    lns1 = ax3.plot(time, danger, '-',  label="danger", linewidth=1, color="orange")
+    lns2 = ax3.plot(time, safe, '-',  label="safe", linewidth=1, color="green")
+    lns3 = ax3b.plot(time, context, '-',  label="context", linewidth=1, color="blue")
+    lns = lns1+lns2+lns3
     labs = [l.get_label() for l in lns]
     ax3b.legend(lns, labs, loc='upper right', facecolor='white', framealpha=1)
 
