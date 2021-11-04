@@ -44,7 +44,10 @@ import matplotlib.dates as md
 
 ##### GLOBAL VARIABLES #####
 # dendritic cell lifetime/population
-DC_N            = 5
+DC_N            = 10
+
+# safe signal: number of consecutive measurements
+SAFE_N          = 10
 
 # use certain period (otherwise all data will be used)
 USE_PERIOD      = 1
@@ -225,6 +228,10 @@ for SNID in nodes:
 
     # Iterate over entries
     i = 0
+    safe1_v = []
+    safe2_v = []
+    safe3_v = []
+    safe4_v = []
     for row in entries:
         ### GENERAL ###
         # Get snid
@@ -311,24 +318,73 @@ for SNID in nodes:
         # Add to array
         danger.append(danger_t)
         
-        ### SAFE ###
-        safe_t = 0.0
-        if(i>0):
-            # Use Delta(t_air(t),t_air(t-1)) as safe signal1
-            safe1_t = get_delta(t_air[i],t_air[i-1])
-            # Use Delta(t_soil(t),t_soil(t-1)) as safe signal2
-            safe2_t = get_delta(t_soil[i],t_soil[i-1])
-            # Use Delta(h_air(t),h_air(t-1)) as safe signal3
-            safe3_t = get_delta(h_air[i],h_air[i-1])
-            # Use Delta(h_soil(t),h_soil(t-1)) as safe signal4
-            safe4_t = get_delta(h_soil[i],h_soil[i-1])
-            # Safe indicator is the higher with lower deltas
-            safe_t = max(1.0 - (safe1_t + safe2_t + safe3_t + safe4_t), 0.0)
-            # Add to array
-            safe.append(safe_t)
-        else:
-            # Add 0 to array
-            safe.append(0.0)
+        ### SAFE - normalized standard deviation of N measurements ###
+        # Safe1 - T_air measurements
+        safe1_v.append(t_air[i])
+        if (len(safe1_v)>SAFE_N):
+            safe1_v.pop(0)
+        safe1_mu = 0
+        for elem in safe1_v:
+            safe1_mu = safe1_mu + elem
+        safe1_mu = safe1_mu / len(safe1_v)
+        safe1_sig = 0
+        for elem in safe1_v:
+            safe1_sig = safe1_sig + (elem - safe1_mu)**2
+        safe1_sig = safe1_sig / len(safe1_v)
+        safe1_sig = math.sqrt(safe1_sig)
+        
+        # Safe2 - T_soil measurements
+        safe2_v.append(t_soil[i])
+        if (len(safe2_v)>SAFE_N):
+            safe2_v.pop(0)
+        safe2_mu = 0
+        for elem in safe2_v:
+            safe2_mu = safe2_mu + elem
+        safe2_mu = safe2_mu / len(safe2_v)
+        safe2_sig = 0
+        for elem in safe2_v:
+            safe2_sig = safe2_sig + (elem - safe2_mu)**2
+        safe2_sig = safe2_sig / len(safe2_v)
+        safe2_sig = math.sqrt(safe2_sig)
+        
+        # Safe3 - H_air measurements
+        safe3_v.append(h_air[i])
+        if (len(safe3_v)>SAFE_N):
+            safe3_v.pop(0)
+        safe1_mu = 0
+        for elem in safe1_v:
+            safe1_mu = safe1_mu + elem
+        safe3_mu = safe1_mu / len(safe1_v)
+        safe3_sig = 0
+        for elem in safe3_v:
+            safe3_sig = safe3_sig + (elem - safe3_mu)**2
+        safe3_sig = safe3_sig / len(safe3_v)
+        safe3_sig = math.sqrt(safe3_sig)
+        
+        # Safe4 - H_soil measurements
+        safe4_v.append(h_soil[i])
+        if (len(safe4_v)>SAFE_N):
+            safe4_v.pop(0)
+        safe4_mu = 0
+        for elem in safe4_v:
+            safe4_mu = safe4_mu + elem
+        safe4_mu = safe4_mu / len(safe4_v)
+        safe4_sig = 0
+        for elem in safe4_v:
+            safe4_sig = safe4_sig + (elem - safe4_mu)**2
+        safe4_sig = safe4_sig / len(safe4_v)
+        safe4_sig = math.sqrt(safe4_sig)
+        
+        # Final safe indicator
+        safe1_t = safe1_sig/safe1_mu if safe1_mu>0 else 0
+        safe2_t = safe2_sig/safe2_mu if safe2_mu>0 else 0
+        safe3_t = safe3_sig/safe3_mu if safe3_mu>0 else 0
+        safe4_t = safe4_sig/safe4_mu if safe4_mu>0 else 0
+        # Limit value between 0 and 1
+        safe_t  = min(max(safe1_t + safe2_t + safe3_t + safe4_t,0),1)
+        
+        # Add to array
+        safe.append(safe_t)
 
 
     ##########################################
