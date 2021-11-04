@@ -14,8 +14,11 @@
 #
 # @file     centralized_dca_analysis.py
 # @author   Dominik Widhalm
-# @version  0.1.0
-# @date     2021/10/20
+# @version  0.1.1
+# @date     2021/11/04
+#
+# @todo     Get rid of variable i in loop
+# @todo     Do not iterate over SNID, rather store info of each!
 #####
 
 
@@ -106,18 +109,6 @@ def fixed16_to_float_10to6(value):
 
 def float_to_fixed16_10to6(value):
     return float_to_fixed16(value,6)
-
-def get_delta(v1,v2):
-    # Check if both are equal
-    if v1 == v2:
-        return 0.0
-    # Check if v1 is bigger than zero
-    if v1 == 0.0:
-        return 0.0
-    # Calculate difference
-    delta = abs((v1 - v2) / v1)
-    # Return delta
-    return delta
 
 
 ###################################
@@ -312,7 +303,7 @@ for SNID in nodes:
         # Add to array
         danger.append(danger_t)
         
-        ### SAFE - normalized standard deviation of N measurements ###
+        ### SAFE ###
         safe_t = 1
         if i>0:
             # Safe1 - T_air measurements
@@ -335,23 +326,6 @@ for SNID in nodes:
     ##### Step 3 - dendritic cell update #####
     ##########################################
         
-        ##### dDCA #####
-        # # CSM
-        # csm = safe_t + danger_t
-        # # K
-        # k = danger_t - 2*safe_t
-        # # Update previous DCs
-        # for dc in dcs:
-            # dc["csm"]   = dc["csm"] + csm
-            # dc["k"]     = dc["k"] + k
-        # # Create new DC
-        # dcs.append({
-            # "antigen"   : antigen_t,
-            # "csm"       : csm,
-            # "k"         : k,
-        # })
-        
-        ##### cDCA (our approach) #####
         context_t = danger_t - safe_t
         # Update previous DCs
         for dc in dcs:
@@ -370,20 +344,6 @@ for SNID in nodes:
     ##### Step 4 - context assignment #####
     #######################################
         
-        ##### dDCA #####
-        # # Check if there is a DC at the end of its life
-        # if len(dcs)>DC_N:
-            # # Get ready DC
-            # dc = dcs.pop(0)
-            # # Asses the DC's context
-            # if (dc["k"]>0):
-                # context.append(1.0)
-            # else:
-                # context.append(0.0)
-        # else:
-            # context.append(0.0)
-        
-        ##### cDCA (our approach) #####
         state = 0
         for dc in dcs:
             state = state + 1 if dc["context"]>=0 else state
