@@ -46,14 +46,11 @@ import matplotlib.dates as md
 # dendritic cell lifetime/population
 DC_N            = 10
 
-# safe signal: number of consecutive measurements
-SAFE_N          = 10
-
 # use certain period (otherwise all data will be used)
 USE_PERIOD      = 1
 # Period to analyze
 p_start         = "2021-10-25 12:00:00"
-p_end           = "2021-10-30 18:00:00"
+p_end           = "2021-10-26 12:00:00"
 
 # Sensor node ID (use single nodes for now)
 nodes           = [
@@ -228,10 +225,6 @@ for SNID in nodes:
 
     # Iterate over entries
     i = 0
-    safe1_v = []
-    safe2_v = []
-    safe3_v = []
-    safe4_v = []
     for row in entries:
         ### GENERAL ###
         # Get snid
@@ -314,77 +307,28 @@ for SNID in nodes:
         # Use X_USART as danger8
         danger8_t = x_usart_t
         # Calculate sum of danger indicators
-        danger_t = danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t + danger8_t
+        #danger_t = danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t + danger8_t
+        danger_t = ((1+danger1_t) * (1+danger2_t) * (1+danger3_t) * (1+danger4_t) * (1+danger5_t) * (1+danger6_t) * (1+danger7_t) * (1+danger8_t)) - 1
         # Add to array
         danger.append(danger_t)
         
         ### SAFE - normalized standard deviation of N measurements ###
-        # Safe1 - T_air measurements
-        safe1_v.append(t_air[i])
-        if (len(safe1_v)>SAFE_N):
-            safe1_v.pop(0)
-        safe1_mu = 0
-        for elem in safe1_v:
-            safe1_mu = safe1_mu + elem
-        safe1_mu = safe1_mu / len(safe1_v)
-        safe1_sig = 0
-        for elem in safe1_v:
-            safe1_sig = safe1_sig + (elem - safe1_mu)**2
-        safe1_sig = safe1_sig / len(safe1_v)
-        safe1_sig = math.sqrt(safe1_sig)
-        
-        # Safe2 - T_soil measurements
-        safe2_v.append(t_soil[i])
-        if (len(safe2_v)>SAFE_N):
-            safe2_v.pop(0)
-        safe2_mu = 0
-        for elem in safe2_v:
-            safe2_mu = safe2_mu + elem
-        safe2_mu = safe2_mu / len(safe2_v)
-        safe2_sig = 0
-        for elem in safe2_v:
-            safe2_sig = safe2_sig + (elem - safe2_mu)**2
-        safe2_sig = safe2_sig / len(safe2_v)
-        safe2_sig = math.sqrt(safe2_sig)
-        
-        # Safe3 - H_air measurements
-        safe3_v.append(h_air[i])
-        if (len(safe3_v)>SAFE_N):
-            safe3_v.pop(0)
-        safe1_mu = 0
-        for elem in safe1_v:
-            safe1_mu = safe1_mu + elem
-        safe3_mu = safe1_mu / len(safe1_v)
-        safe3_sig = 0
-        for elem in safe3_v:
-            safe3_sig = safe3_sig + (elem - safe3_mu)**2
-        safe3_sig = safe3_sig / len(safe3_v)
-        safe3_sig = math.sqrt(safe3_sig)
-        
-        # Safe4 - H_soil measurements
-        safe4_v.append(h_soil[i])
-        if (len(safe4_v)>SAFE_N):
-            safe4_v.pop(0)
-        safe4_mu = 0
-        for elem in safe4_v:
-            safe4_mu = safe4_mu + elem
-        safe4_mu = safe4_mu / len(safe4_v)
-        safe4_sig = 0
-        for elem in safe4_v:
-            safe4_sig = safe4_sig + (elem - safe4_mu)**2
-        safe4_sig = safe4_sig / len(safe4_v)
-        safe4_sig = math.sqrt(safe4_sig)
-        
-        # Final safe indicator
-        safe1_t = safe1_sig/safe1_mu if safe1_mu>0 else 0
-        safe2_t = safe2_sig/safe2_mu if safe2_mu>0 else 0
-        safe3_t = safe3_sig/safe3_mu if safe3_mu>0 else 0
-        safe4_t = safe4_sig/safe4_mu if safe4_mu>0 else 0
-        # Limit value between 0 and 1
-        safe_t  = min(max(safe1_t + safe2_t + safe3_t + safe4_t,0),1)
-        
-        # Add to array
-        safe.append(safe_t)
+        safe_t = 1
+        if i>0:
+            # Safe1 - T_air measurements
+            safe1_t = math.exp(-abs(t_air[i]-t_air[i-1]))
+            # Safe2 - T_soil measurements
+            safe2_t = math.exp(-abs(t_soil[i]-t_soil[i-1]))
+            # Safe3 - H_air measurements
+            safe3_t = math.exp(-abs(h_air[i]-h_air[i-1]))
+            # Safe4 - H_soil measurements
+            safe4_t = math.exp(-abs(h_soil[i]-h_soil[i-1]))
+            # Limit value between 0 and 1
+            safe_t  = safe1_t * safe2_t * safe3_t * safe4_t
+            # Add to array
+            safe.append(safe_t)
+        else:
+            safe.append(1)
 
 
     ##########################################
@@ -392,37 +336,58 @@ for SNID in nodes:
     ##########################################
         
         ##### dDCA #####
-        # CSM
-        csm = safe_t + danger_t
-        # K
-        k = danger_t - 2*safe_t
+        # # CSM
+        # csm = safe_t + danger_t
+        # # K
+        # k = danger_t - 2*safe_t
+        # # Update previous DCs
+        # for dc in dcs:
+            # dc["csm"]   = dc["csm"] + csm
+            # dc["k"]     = dc["k"] + k
+        # # Create new DC
+        # dcs.append({
+            # "antigen"   : antigen_t,
+            # "csm"       : csm,
+            # "k"         : k,
+        # })
+        
+        ##### cDCA (our approach) #####
+        context_t = danger_t - safe_t
         # Update previous DCs
         for dc in dcs:
-            dc["csm"]   = dc["csm"] + csm
-            dc["k"]     = dc["k"] + k
+            dc["context"] = dc["context"] + context_t
         # Create new DC
         dcs.append({
             "antigen"   : antigen_t,
-            "csm"       : csm,
-            "k"         : k,
+            "context"   : context_t,
         })
+        # If population is full, delete oldest DC
+        if len(dcs)>DC_N:
+            dcs.pop(0)
         
 
     #######################################
     ##### Step 4 - context assignment #####
     #######################################
         
-        # Check if there is a DC at the end of its life
-        if len(dcs)>4:
-            # Get ready DC
-            dc = dcs.pop(0)
-            # Asses the DC's context
-            if (dc["k"]>0):
-                context.append(1.0)
-            else:
-                context.append(0.0)
-        else:
-            context.append(0.0)
+        ##### dDCA #####
+        # # Check if there is a DC at the end of its life
+        # if len(dcs)>DC_N:
+            # # Get ready DC
+            # dc = dcs.pop(0)
+            # # Asses the DC's context
+            # if (dc["k"]>0):
+                # context.append(1.0)
+            # else:
+                # context.append(0.0)
+        # else:
+            # context.append(0.0)
+        
+        ##### cDCA (our approach) #####
+        state = 0
+        for dc in dcs:
+            state = state + 1 if dc["context"]>=0 else state
+        context.append(state/len(dcs))
         
         # Increment iteration counter
         i = i + 1
