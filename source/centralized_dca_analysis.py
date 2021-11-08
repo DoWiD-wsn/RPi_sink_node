@@ -14,8 +14,8 @@
 #
 # @file     centralized_dca_analysis.py
 # @author   Dominik Widhalm
-# @version  0.1.1
-# @date     2021/11/04
+# @version  0.1.2
+# @date     2021/11/08
 #
 # @todo     Get rid of variable i in loop
 # @todo     Do not iterate over SNID, rather store info of each!
@@ -41,7 +41,7 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 12})
 from matplotlib import rc
 rc('mathtext', default='regular')
-from matplotlib.ticker import (AutoMinorLocator, MultipleLocator)
+from matplotlib.ticker import (AutoLocator, AutoMinorLocator, MultipleLocator)
 import matplotlib.dates as md
 
 
@@ -52,8 +52,8 @@ DC_N            = 10
 # use certain period (otherwise all data will be used)
 USE_PERIOD      = 1
 # Period to analyze
-p_start         = "2021-10-25 12:00:00"
-p_end           = "2021-10-26 12:00:00"
+p_start         = "2021-11-05 12:00:00"
+p_end           = "2021-11-08 16:00:00"
 
 # Sensor node ID (use single nodes for now)
 nodes           = [
@@ -73,8 +73,7 @@ DB_CON_BASE     = "wsn_testbed"
 
 # Date/time format
 fmt             = '%Y-%m-%d %H:%M:%S'
-xfmt            = md.DateFormatter('%m/%d %H')
-hour_int        = 12
+xfmt            = md.DateFormatter('%H:%M')
 
 
 ##### METHODS #####################
@@ -298,24 +297,22 @@ for SNID in nodes:
         # Use X_USART as danger8
         danger8_t = x_usart_t
         # Calculate sum of danger indicators
-        #danger_t = danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t + danger8_t
-        danger_t = ((1+danger1_t) * (1+danger2_t) * (1+danger3_t) * (1+danger4_t) * (1+danger5_t) * (1+danger6_t) * (1+danger7_t) * (1+danger8_t)) - 1
-        # Add to array
+        danger_t = danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t + danger8_t
         danger.append(danger_t)
         
         ### SAFE ###
         safe_t = 1
         if i>0:
             # Safe1 - T_air measurements
-            safe1_t = math.exp(-abs(t_air[i]-t_air[i-1]))
+            safe1_t = abs(t_air[i]-t_air[i-1])
             # Safe2 - T_soil measurements
-            safe2_t = math.exp(-abs(t_soil[i]-t_soil[i-1]))
+            safe2_t = abs(t_soil[i]-t_soil[i-1])
             # Safe3 - H_air measurements
-            safe3_t = math.exp(-abs(h_air[i]-h_air[i-1]))
+            safe3_t = abs(h_air[i]-h_air[i-1])
             # Safe4 - H_soil measurements
-            safe4_t = math.exp(-abs(h_soil[i]-h_soil[i-1]))
+            safe4_t = abs(h_soil[i]-h_soil[i-1])
             # Limit value between 0 and 1
-            safe_t  = safe1_t * safe2_t * safe3_t * safe4_t
+            safe_t  = math.exp(-(safe1_t + safe2_t + safe3_t + safe4_t))
             # Add to array
             safe.append(safe_t)
         else:
@@ -392,7 +389,7 @@ for SNID in nodes:
     # grid
     ax1.grid(which='major', color='#CCCCCC', linestyle=':')
     # x-axis
-    ax1.xaxis.set_major_locator(md.HourLocator(interval = hour_int))
+    ax1.xaxis.set_major_locator(AutoLocator())
     ax1.xaxis.set_minor_locator(AutoMinorLocator(2))
     ax1.set_xticklabels([])
     ax1b.set_xticklabels([])
@@ -427,7 +424,7 @@ for SNID in nodes:
     # grid
     ax2.grid(which='major', color='#CCCCCC', linestyle=':')
     # x-axis
-    ax2.xaxis.set_major_locator(md.HourLocator(interval = hour_int))
+    ax2.xaxis.set_major_locator(AutoLocator())
     ax2.xaxis.set_minor_locator(AutoMinorLocator(2))
     ax2.set_xticklabels([])
     # y-axis
@@ -453,7 +450,7 @@ for SNID in nodes:
     # grid
     ax3.grid(which='major', color='#CCCCCC', linestyle=':')
     # x-axis
-    ax3b.xaxis.set_major_locator(md.HourLocator(interval = hour_int))
+    ax3b.xaxis.set_major_locator(AutoLocator())
     ax3b.xaxis.set_minor_locator(AutoMinorLocator(2))
     ax3.set_xlabel('time [H:M]')
     ax3.xaxis.set_major_formatter(xfmt)
