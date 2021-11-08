@@ -309,22 +309,21 @@ for SNID in nodes:
         danger7_t = x_adc_t
         # Use X_USART as danger8
         danger8_t = x_usart_t
-        # Calculate sum of danger indicators
-        danger_t = danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t + danger8_t
+        # Calculate final danger indicators
+        danger_t = ((1+danger1_t) * (1+danger2_t) * (1+danger3_t) * (1+danger4_t) * (1+danger5_t) * (1+danger6_t) * (1+danger7_t) * (1+danger8_t)) - 1
         danger.append(danger_t)
         
         ### SAFE ###
-        safe_t = 1
-        # Safe1 - T_air measurements
-        safe1_t = abs(t_air_n-t_air_o)
-        # Safe2 - T_soil measurements
-        safe2_t = abs(t_soil_n-t_soil_o)
-        # Safe3 - H_air measurements
-        safe3_t = abs(h_air_n-h_air_o)
-        # Safe4 - H_soil measurements
-        safe4_t = abs(h_soil_n-h_soil_o)
-        # Limit value between 0 and 1
-        safe_t  = math.exp(-(safe1_t + safe2_t + safe3_t + safe4_t))
+        # Safe1 - T_air relative difference
+        safe1_t = math.exp(-abs(t_air_n-t_air_o))
+        # Safe2 - T_soil relative difference
+        safe2_t = math.exp(-abs(t_soil_n-t_soil_o))
+        # Safe3 - H_air relative difference
+        safe3_t = math.exp(-abs(h_air_n-h_air_o))
+        # Safe4 - H_soil relative difference
+        safe4_t = math.exp(-abs(h_soil_n-h_soil_o))
+        # Calculate final safe indicator
+        safe_t  = (safe1_t * safe2_t * safe3_t * safe4_t)
         # Add to array
         safe.append(safe_t)
 
