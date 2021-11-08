@@ -14,11 +14,8 @@
 #
 # @file     centralized_dca_analysis.py
 # @author   Dominik Widhalm
-# @version  0.1.2
+# @version  0.1.3
 # @date     2021/11/08
-#
-# @todo     Get rid of variable i in loop
-# @todo     Do not iterate over SNID, rather store info of each!
 #####
 
 
@@ -190,6 +187,14 @@ for SNID in nodes:
     t_soil      = []
     h_air       = []
     h_soil      = []
+    t_air_n     = None
+    t_soil_n    = None
+    h_air_n     = None
+    h_soil_n    = None
+    t_air_o     = None
+    t_soil_o    = None
+    h_air_o     = None
+    h_soil_o    = None
     # fault indicator
     x_nt        = []
     x_vs        = []
@@ -214,7 +219,6 @@ for SNID in nodes:
     #######################################
 
     # Iterate over entries
-    i = 0
     for row in entries:
         ### GENERAL ###
         # Get snid
@@ -240,6 +244,15 @@ for SNID in nodes:
         h_air.append(h_air_t)
         h_soil_t = round(float(row[7]),2)
         h_soil.append(h_soil_t)
+        # Update old/new sensor values
+        t_air_o = t_air_n if t_air_n is not None else t_air_t
+        t_air_n = t_air_t
+        t_soil_o = t_soil_n if t_soil_n is not None else t_soil_t
+        t_soil_n = t_soil_t
+        h_air_o = h_air_n if h_air_n is not None else h_air_t
+        h_air_n = h_air_t
+        h_soil_o = h_soil_n if h_soil_n is not None else h_soil_t
+        h_soil_n = h_soil_t
         
         ### FAULT INDICATOR ###
         # Get indicator values
@@ -302,21 +315,18 @@ for SNID in nodes:
         
         ### SAFE ###
         safe_t = 1
-        if i>0:
-            # Safe1 - T_air measurements
-            safe1_t = abs(t_air[i]-t_air[i-1])
-            # Safe2 - T_soil measurements
-            safe2_t = abs(t_soil[i]-t_soil[i-1])
-            # Safe3 - H_air measurements
-            safe3_t = abs(h_air[i]-h_air[i-1])
-            # Safe4 - H_soil measurements
-            safe4_t = abs(h_soil[i]-h_soil[i-1])
-            # Limit value between 0 and 1
-            safe_t  = math.exp(-(safe1_t + safe2_t + safe3_t + safe4_t))
-            # Add to array
-            safe.append(safe_t)
-        else:
-            safe.append(1)
+        # Safe1 - T_air measurements
+        safe1_t = abs(t_air_n-t_air_o)
+        # Safe2 - T_soil measurements
+        safe2_t = abs(t_soil_n-t_soil_o)
+        # Safe3 - H_air measurements
+        safe3_t = abs(h_air_n-h_air_o)
+        # Safe4 - H_soil measurements
+        safe4_t = abs(h_soil_n-h_soil_o)
+        # Limit value between 0 and 1
+        safe_t  = math.exp(-(safe1_t + safe2_t + safe3_t + safe4_t))
+        # Add to array
+        safe.append(safe_t)
 
 
     ##########################################
@@ -345,9 +355,6 @@ for SNID in nodes:
         for dc in dcs:
             state = state + 1 if dc["context"]>=0 else state
         context.append(state/len(dcs))
-        
-        # Increment iteration counter
-        i = i + 1
 
     ####################################
     ##### Step 1.2 - result output #####
