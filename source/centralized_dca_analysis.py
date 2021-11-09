@@ -49,8 +49,8 @@ DC_N            = 10
 # use certain period (otherwise all data will be used)
 USE_PERIOD      = 1
 # Period to analyze
-p_start         = "2021-11-05 12:00:00"
-p_end           = "2021-11-08 16:00:00"
+p_start         = "2021-11-01 12:00:00"
+p_end           = "2021-11-08 12:00:00"
 
 # Sensor node ID (use single nodes for now)
 nodes           = [
@@ -310,21 +310,22 @@ for SNID in nodes:
         # Use X_USART as danger8
         danger8_t = x_usart_t
         # Calculate final danger indicators
-        danger_t = ((1+danger1_t) * (1+danger2_t) * (1+danger3_t) * (1+danger4_t) * (1+danger5_t) * (1+danger6_t) * (1+danger7_t) * (1+danger8_t)) - 1
+        danger_t = min(1, ((1+danger1_t) * (1+danger2_t) * (1+danger3_t) * (1+danger4_t) * (1+danger5_t) * (1+danger6_t) * (1+danger7_t) * (1+danger8_t)) - 1)
         danger.append(danger_t)
         
         ### SAFE ###
         # Safe1 - T_air relative difference
-        safe1_t = 1/(1+10*0.5**(10-abs(t_air_n-t_air_o)))
+        safe1_t = math.exp(-abs(t_air_n-t_air_o))
         # Safe2 - T_soil relative difference
-        safe2_t = 1/(1+10*0.5**(10-abs(t_soil_n-t_soil_o)))
+        safe2_t = math.exp(-abs(t_soil_n-t_soil_o))
         # Safe3 - H_air relative difference
-        safe3_t = 1/(1+10*0.5**(10-abs(h_air_n-h_air_o)))
+        safe3_t = math.exp(-abs(h_air_n-h_air_o))
         # Safe4 - H_soil relative difference
-        safe4_t = 1/(1+10*0.5**(10-abs(h_soil_n-h_soil_o)))
+        safe4_t = math.exp(-abs(h_soil_n-h_soil_o))
         # Calculate final safe indicator
         safe_t  = (safe1_t * safe2_t * safe3_t * safe4_t)
         # Add to array
+        safe_t  = min(safe1_t, safe2_t, safe3_t, safe4_t)
         safe.append(safe_t)
 
 
@@ -418,10 +419,10 @@ for SNID in nodes:
     ax1b.yaxis.set_major_locator(MultipleLocator(25))
     ax1b.yaxis.set_minor_locator(AutoMinorLocator(2))
     # plot data
-    lns1 = ax1.plot(time, t_air, '-',  label=r"$T_{air}$", linewidth=1, color="darkgreen")
-    lns2 = ax1.plot(time, t_soil, '-',  label=r"$T_{soil}$", linewidth=1, color="limegreen")
-    lns3 = ax1b.plot(time, h_air, '-',  label=r"$H_{air}$", linewidth=1, color="darkblue")
-    lns4 = ax1b.plot(time, h_soil, '-',  label=r"$H_{soil}$", linewidth=1, color="dodgerblue")
+    lns1 = ax1.plot(time, t_air, '-',  label=r"$T_{air}$", color="darkgreen")
+    lns2 = ax1.plot(time, t_soil, '-',  label=r"$T_{soil}$", color="limegreen")
+    lns3 = ax1b.plot(time, h_air, '-',  label=r"$H_{air}$", color="darkblue")
+    lns4 = ax1b.plot(time, h_soil, '-',  label=r"$H_{soil}$", color="dodgerblue")
     lns = lns1+lns2+lns3+lns4
     labs = [l.get_label() for l in lns]
     ax1b.legend(lns, labs, loc='upper right', facecolor='white', framealpha=1)
@@ -442,14 +443,14 @@ for SNID in nodes:
     ax2.spines['top'].set_visible(False)
     ax2.spines['right'].set_visible(False)
     # plot data
-    ax2.plot(time, x_nt, '-',  label=r"$\chi_{NT}$", linewidth=1, color="red")
-    ax2.plot(time, x_vs, '-',  label=r"$\chi_{VS}$", linewidth=1, color="darkred")
-    ax2.plot(time, x_bat, '-',  label=r"$\chi_{BAT}$", linewidth=1, color="slateblue")
-    ax2.plot(time, x_art, '-',  label=r"$\chi_{ART}$", linewidth=1, color="magenta")
-    ax2.plot(time, x_rst, '-',  label=r"$\chi_{RST}$", linewidth=1, color="chocolate")
-    ax2.plot(time, x_ic, '-',  label=r"$\chi_{IC}$", linewidth=1, color="darkviolet")
-    ax2.plot(time, x_adc, '-',  label=r"$\chi_{ADC}$", linewidth=1, color="darkorange")
-    ax2.plot(time, x_usart, '-',  label=r"$\chi_{USART}$", linewidth=1, color="darkviolet")
+    ax2.plot(time, x_nt, '-',  label=r"$\chi_{NT}$", color="midnightblue")
+    ax2.plot(time, x_vs, '-',  label=r"$\chi_{VS}$", color="darkgreen")
+    ax2.plot(time, x_bat, '-',  label=r"$\chi_{BAT}$", color="rosybrown")
+    ax2.plot(time, x_art, '-',  label=r"$\chi_{ART}$", color="orangered")
+    ax2.plot(time, x_rst, '-',  label=r"$\chi_{RST}$", color="gold")
+    ax2.plot(time, x_ic, '-',  label=r"$\chi_{IC}$", color="lime")
+    ax2.plot(time, x_adc, '-',  label=r"$\chi_{ADC}$", color="aqua")
+    ax2.plot(time, x_usart, '-',  label=r"$\chi_{USART}$", color="fuchsia")
     ax2.legend(framealpha=1, ncol=8, loc='upper center')
 
     ## DCA plot
@@ -481,8 +482,8 @@ for SNID in nodes:
     ax3b.yaxis.set_major_locator(MultipleLocator(0.25))
     ax3b.yaxis.set_minor_locator(AutoMinorLocator(1))
     # plot data
-    lns1 = ax3.plot(time, danger, '-',  label="danger", linewidth=1, color="orange")
-    lns2 = ax3.plot(time, safe, '-',  label="safe", linewidth=1, color="green")
+    lns1 = ax3.plot(time, danger, '-',  label="danger", color="red")
+    lns2 = ax3.plot(time, safe, '-',  label="safe", color="green")
     lns3 = ax3b.plot(time, context, '-',  label="context", linewidth=1, color="blue")
     lns = lns1+lns2+lns3
     labs = [l.get_label() for l in lns]
