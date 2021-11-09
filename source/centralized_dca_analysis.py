@@ -44,17 +44,17 @@ import matplotlib.dates as md
 
 ##### GLOBAL VARIABLES #####
 # dendritic cell lifetime/population
-DC_N            = 10
+DC_N            = 5
 # number of sensor values for std-dev evaluation
 STDDEV_N        = 10
 # sensitivity of safe indicator
-SAFE_SENS       = 0.3
+SAFE_SENS       = 0.35
 
 # use certain period (otherwise all data will be used)
 USE_PERIOD      = 1
 # Period to analyze
-p_start         = "2021-11-01 00:00:00"
-p_end           = "2021-11-07 00:00:00"
+p_start         = "2021-11-07 12:00:00"
+p_end           = "2021-11-09 12:00:00"
 
 # Sensor node ID (use single nodes for now)
 nodes           = [
