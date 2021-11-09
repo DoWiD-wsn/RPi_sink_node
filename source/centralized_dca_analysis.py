@@ -45,12 +45,16 @@ import matplotlib.dates as md
 ##### GLOBAL VARIABLES #####
 # dendritic cell lifetime/population
 DC_N            = 10
+# number of sensor values for std-dev evaluation
+STDDEV_N        = 10
+# sensitivity of safe indicator
+SAFE_SENS       = 0.3
 
 # use certain period (otherwise all data will be used)
 USE_PERIOD      = 1
 # Period to analyze
-p_start         = "2021-11-01 12:00:00"
-p_end           = "2021-11-08 12:00:00"
+p_start         = "2021-11-01 00:00:00"
+p_end           = "2021-11-07 00:00:00"
 
 # Sensor node ID (use single nodes for now)
 nodes           = [
@@ -70,7 +74,7 @@ DB_CON_BASE     = "wsn_testbed"
 
 # Date/time format
 fmt             = '%Y-%m-%d %H:%M:%S'
-xfmt            = md.DateFormatter('%H:%M')
+xfmt            = md.DateFormatter('%H:%M\n%m/%d')
 
 
 ##### METHODS #####################
@@ -187,14 +191,10 @@ for SNID in nodes:
     t_soil      = []
     h_air       = []
     h_soil      = []
-    t_air_n     = None
-    t_soil_n    = None
-    h_air_n     = None
-    h_soil_n    = None
-    t_air_o     = None
-    t_soil_o    = None
-    h_air_o     = None
-    h_soil_o    = None
+    t_air_a     = []
+    t_soil_a    = []
+    h_air_a     = []
+    h_soil_a    = []
     # fault indicator
     x_nt        = []
     x_vs        = []
@@ -244,15 +244,19 @@ for SNID in nodes:
         h_air.append(h_air_t)
         h_soil_t = round(float(row[7]),2)
         h_soil.append(h_soil_t)
-        # Update old/new sensor values
-        t_air_o = t_air_n if t_air_n is not None else t_air_t
-        t_air_n = t_air_t
-        t_soil_o = t_soil_n if t_soil_n is not None else t_soil_t
-        t_soil_n = t_soil_t
-        h_air_o = h_air_n if h_air_n is not None else h_air_t
-        h_air_n = h_air_t
-        h_soil_o = h_soil_n if h_soil_n is not None else h_soil_t
-        h_soil_n = h_soil_t
+        # Store last N sensor values
+        t_air_a.append(t_air_t)
+        if len(t_air_a)>STDDEV_N:
+            t_air_a.pop(0)
+        t_soil_a.append(t_soil_t)
+        if len(t_soil_a)>STDDEV_N:
+            t_soil_a.pop(0)
+        h_air_a.append(h_air_t)
+        if len(h_air_a)>STDDEV_N:
+            h_air_a.pop(0)
+        h_soil_a.append(h_soil_t)
+        if len(h_soil_a)>STDDEV_N:
+            h_soil_a.pop(0)
         
         ### FAULT INDICATOR ###
         # Get indicator values
@@ -315,17 +319,51 @@ for SNID in nodes:
         
         ### SAFE ###
         # Safe1 - T_air relative difference
-        safe1_t = math.exp(-abs(t_air_n-t_air_o))
+        safe1_mu = 0
+        for val in t_air_a:
+            safe1_mu = safe1_mu + val
+        safe1_mu = safe1_mu / len(t_air_a)
+        safe1_dev = 0
+        for val in t_air_a:
+            safe1_dev = safe1_dev + ((val-safe1_mu)**2)
+        safe1_dev = safe1_dev / len(t_air_a)
+        safe1_dev = math.sqrt(safe1_dev)
+        safe1_t = safe1_dev
         # Safe2 - T_soil relative difference
-        safe2_t = math.exp(-abs(t_soil_n-t_soil_o))
+        safe2_mu = 0
+        for val in t_soil_a:
+            safe2_mu = safe2_mu + val
+        safe2_mu = safe2_mu / len(t_soil_a)
+        safe2_dev = 0
+        for val in t_soil_a:
+            safe2_dev = safe2_dev + ((val-safe2_mu)**2)
+        safe2_dev = safe2_dev / len(t_soil_a)
+        safe2_dev = math.sqrt(safe2_dev)
+        safe2_t = safe2_dev
         # Safe3 - H_air relative difference
-        safe3_t = math.exp(-abs(h_air_n-h_air_o))
+        safe3_mu = 0
+        for val in h_air_a:
+            safe3_mu = safe3_mu + val
+        safe3_mu = safe3_mu / len(h_air_a)
+        safe3_dev = 0
+        for val in h_air_a:
+            safe3_dev = safe3_dev + ((val-safe3_mu)**2)
+        safe3_dev = safe3_dev / len(h_air_a)
+        safe3_dev = math.sqrt(safe3_dev)
+        safe3_t = safe3_dev
         # Safe4 - H_soil relative difference
-        safe4_t = math.exp(-abs(h_soil_n-h_soil_o))
+        safe4_mu = 0
+        for val in h_soil_a:
+            safe4_mu = safe4_mu + val
+        safe4_mu = safe4_mu / len(h_soil_a)
+        safe4_dev = 0
+        for val in h_soil_a:
+            safe4_dev = safe4_dev + ((val-safe4_mu)**2)
+        safe4_dev = safe4_dev / len(h_soil_a)
+        safe4_dev = math.sqrt(safe4_dev)
+        safe4_t = safe4_dev
         # Calculate final safe indicator
-        safe_t  = (safe1_t * safe2_t * safe3_t * safe4_t)
-        # Add to array
-        safe_t  = min(safe1_t, safe2_t, safe3_t, safe4_t)
+        safe_t  = math.exp(-max(safe1_t, safe2_t, safe3_t, safe4_t)*SAFE_SENS)
         safe.append(safe_t)
 
 
@@ -385,7 +423,7 @@ for SNID in nodes:
     x_last  = hour_rounder(time[-1])
 
     # prepare figure
-    fig = plt.figure(figsize=(12,8), dpi=150, tight_layout=True)
+    fig = plt.figure(figsize=(15,8), dpi=300, tight_layout=True)
     ax1 = fig.add_subplot(311)
     ax1b = ax1.twinx()
     ax2 = fig.add_subplot(312)
@@ -447,10 +485,10 @@ for SNID in nodes:
     ax2.plot(time, x_vs, '-',  label=r"$\chi_{VS}$", color="darkgreen")
     ax2.plot(time, x_bat, '-',  label=r"$\chi_{BAT}$", color="rosybrown")
     ax2.plot(time, x_art, '-',  label=r"$\chi_{ART}$", color="orangered")
-    ax2.plot(time, x_rst, '-',  label=r"$\chi_{RST}$", color="gold")
+    ax2.plot(time, x_rst, '-',  label=r"$\chi_{RST}$", color="fuchsia")
     ax2.plot(time, x_ic, '-',  label=r"$\chi_{IC}$", color="lime")
     ax2.plot(time, x_adc, '-',  label=r"$\chi_{ADC}$", color="aqua")
-    ax2.plot(time, x_usart, '-',  label=r"$\chi_{USART}$", color="fuchsia")
+    ax2.plot(time, x_usart, '-',  label=r"$\chi_{USART}$", color="gold")
     ax2.legend(framealpha=1, ncol=8, loc='upper center')
 
     ## DCA plot
