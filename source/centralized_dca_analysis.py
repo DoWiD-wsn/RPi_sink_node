@@ -45,6 +45,9 @@ import matplotlib.dates as md
 ##### GLOBAL VARIABLES #####
 # dendritic cell lifetime/population
 DC_N            = 10
+# safe signal curve characteristics
+SAFE_MAX        = 5
+SAFE_FLAT       = 2
 
 # use certain period (otherwise all data will be used)
 USE_PERIOD      = 1
@@ -315,13 +318,13 @@ for SNID in nodes:
         
         ### SAFE ###
         # Safe1 - T_air relative difference
-        safe1_t = math.exp(-abs(t_air_n-t_air_o))
+        safe1_t = max(0, 1-(abs(t_air_n-t_air_o)/SAFE_MAX)**SAFE_FLAT)
         # Safe2 - T_soil relative difference
-        safe2_t = math.exp(-abs(t_soil_n-t_soil_o))
+        safe2_t = max(0, 1-(abs(t_soil_n-t_soil_o)/SAFE_MAX)**SAFE_FLAT)
         # Safe3 - H_air relative difference
-        safe3_t = math.exp(-abs(h_air_n-h_air_o))
+        safe3_t = max(0, 1-(abs(h_air_n-h_air_o)/SAFE_MAX)**SAFE_FLAT)
         # Safe4 - H_soil relative difference
-        safe4_t = math.exp(-abs(h_soil_n-h_soil_o))
+        safe4_t = max(0, 1-(abs(h_soil_n-h_soil_o)/SAFE_MAX)**SAFE_FLAT)
         # Calculate final safe indicator
         safe_t  = (safe1_t * safe2_t * safe3_t * safe4_t)
         # Add to array
