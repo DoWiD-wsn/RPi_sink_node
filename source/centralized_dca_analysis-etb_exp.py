@@ -27,6 +27,8 @@ from datetime import datetime
 import time
 # CSV functionality
 import csv
+# To get filename without path and extension
+from pathlib import Path
 # for plotting
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 12})
@@ -45,7 +47,7 @@ STDDEV_N        = 10
 SAFE_SENS       = 0.35
 
 # CSV input file
-CSV_INPUT       = "asnx_environment_sweep-2021-11-03_14-48-55.csv"
+CSV_INPUT       = "asnx_[EXP].csv"
 
 # CSV output (0...disable/1...enable)
 CSV_OUTPUT      = 1
@@ -80,7 +82,7 @@ except Exception as e:
 
 # Prepare CSV output file (if needed)
 if CSV_OUTPUT:
-    CSV_FILE = "centralized_dca-etb_exp-output.csv"
+    CSV_FILE = Path(CSV_INPUT).stem + "-cdca.csv"
     # Try to open/create CSV file
     csv_o = None
     try:
@@ -247,7 +249,7 @@ for row in csv_i:
         # Use X_USART as danger8
         danger8_t = x_usart_t
         # Calculate final danger indicators
-        danger_t = min(1, ((1+danger1_t) * (1+danger2_t) * (1+danger3_t) * (1+danger4_t) * (1+danger5_t) * (1+danger6_t) * (1+danger7_t) * (1+danger8_t)) - 1)
+        danger_t = min(1, (danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t + danger8_t))
         danger.append(danger_t)
         
         ### SAFE ###
@@ -472,7 +474,7 @@ labs = [l.get_label() for l in lns]
 ax3b.legend(lns, labs, loc='upper right', facecolor='white', framealpha=1)
 
 ### Finish figure
-PLOT_FILE = "centralized_dca-etb_exp-output.svg"
+PLOT_FILE = Path(CSV_INPUT).stem + "-cdca.svg"
 plt.savefig(PLOT_FILE)#, transparent=True)
 plt.cla()
 plt.clf()

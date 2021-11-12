@@ -314,7 +314,7 @@ for SNID in nodes:
         # Use X_USART as danger8
         danger8_t = x_usart_t
         # Calculate final danger indicators
-        danger_t = min(1, ((1+danger1_t) * (1+danger2_t) * (1+danger3_t) * (1+danger4_t) * (1+danger5_t) * (1+danger6_t) * (1+danger7_t) * (1+danger8_t)) - 1)
+        danger_t = min(1, (danger1_t + danger2_t + danger3_t + danger4_t + danger5_t + danger6_t + danger7_t + danger8_t))
         danger.append(danger_t)
         
         ### SAFE ###
