@@ -53,8 +53,8 @@ SAFE_SENS       = 0.35
 # use certain period (otherwise all data will be used)
 USE_PERIOD      = 1
 # Period to analyze
-p_start         = "2021-11-07 12:00:00"
-p_end           = "2021-11-09 12:00:00"
+p_start         = "2021-11-07 07:00:00"
+p_end           = "2021-11-12 11:00:00"
 
 # Sensor node ID (use single nodes for now)
 nodes           = [
