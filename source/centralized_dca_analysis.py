@@ -53,8 +53,8 @@ SAFE_SENS       = 0.35
 # use certain period (otherwise all data will be used)
 USE_PERIOD      = 1
 # Period to analyze
-p_start         = "2021-11-07 07:00:00"
-p_end           = "2021-11-12 11:00:00"
+p_start         = "2021-11-06 12:00:00"
+p_end           = "2021-11-12 12:00:00"
 
 # Sensor node ID (use single nodes for now)
 nodes           = [
@@ -175,7 +175,7 @@ for SNID in nodes:
             exit(-1)
         # Write initial rows into the CSV file
         try:
-            csv_o.writerow(["snid [lower 32-bit of MAC]", "time [UNIX]", "T_air [°C]", "T_soil [°C]", "H_air [%RH]", "H_soil [%RH]", "x_nt",  "x_vs",  "x_bat",  "x_art",  "x_rst",  "x_ic",  "x_adc",  "x_usart", "antigen",  "danger",  "safe", "context [0..1]"])
+            csv_o.writerow(["snid [lower 32-bit of MAC]", "sntime", "time [UNIX]", "T_air [°C]", "T_soil [°C]", "H_air [%RH]", "H_soil [%RH]", "x_nt",  "x_vs",  "x_bat",  "x_art",  "x_rst",  "x_ic",  "x_adc",  "x_usart", "antigen",  "danger",  "safe", "context [0..1]"])
         except Exception as e:
             print("Writing initial data to the CSV file failed ... aborting!")
             print(e)
@@ -404,7 +404,7 @@ for SNID in nodes:
         for i in range(len(time)):
             try:
                 # Write a row to the CSV file
-                csv_o.writerow([snid[i], time[i], t_air[i], t_soil[i], h_air[i], h_soil[i], x_nt[i], x_vs[i], x_bat[i], x_art[i], x_rst[i], x_ic[i], x_adc[i], x_usart[i], antigen[i], danger[i], safe[i], context[i]])
+                csv_o.writerow([snid[i], sntime[i], time[i], t_air[i], t_soil[i], h_air[i], h_soil[i], x_nt[i], x_vs[i], x_bat[i], x_art[i], x_rst[i], x_ic[i], x_adc[i], x_usart[i], antigen[i], danger[i], safe[i], context[i]])
             except Exception as e:
                 print("Writing measurement data to the CSV file failed ... aborting!")
                 print(e)
