@@ -1,9 +1,9 @@
 #####
 # @brief    RPi sink node centralized DCA analysis of recordings
 #
-# Python script running on the RPi-based sink node (but not limited to)
-# to perform a centralized DCA on the sensor measurement and
-# diagnostic data collected from the sensor nodes.
+# Python script running to perform a centralized DCA on the sensor 
+# measurement and diagnostic data collected and recorded from the sensor
+# nodes during ETB-based experiments.
 # The result are the use-case specific data in combination with an
 # assigned anomaly context between 0 and 1 where 0 means a "normal"
 # context and 1 refers to circumstances that facilitate node faults.
@@ -12,10 +12,10 @@
 #
 # This is the version used in the centralized DCA ETB experiments.
 #
-# @file     centralized_dca_analysis.py
+# @file     centralized_dca_analysis-etb_exp.py
 # @author   Dominik Widhalm
-# @version  0.1.0
-# @date     2021/11/09
+# @version  0.1.1
+# @date     2021/11/15
 #####
 
 
@@ -29,6 +29,8 @@ import time
 import csv
 # To get filename without path and extension
 from pathlib import Path
+# To handle the command line parameter
+import sys
 # for plotting
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 12})
@@ -45,9 +47,6 @@ DC_N            = 5
 STDDEV_N        = 10
 # sensitivity of safe indicator
 SAFE_SENS       = 0.35
-
-# CSV input file
-CSV_INPUT       = "asnx_[EXP].csv"
 
 # CSV output (0...disable/1...enable)
 CSV_OUTPUT      = 1
@@ -68,6 +67,19 @@ def hour_rounder(t):
 ###################################
 ##### Step 0 - initialization #####
 ###################################
+
+##### Check input file ######
+# Paremeter given
+if (len(sys.argv) != 2):
+    print("ERROR: the script needs the input CSV file as parameter!")
+    exit(-1)
+# Correct extension
+if not (str(sys.argv[1]).endswith('.csv') or str(sys.argv[1]).endswith('.CSV')):
+    print("ERROR: CSV file expected as input!")
+    exit(-1)
+# Use given file as input
+CSV_INPUT = str(sys.argv[1])
+
 
 ##### GET DATA FROM CSV FILE ######
 csv_i = None
