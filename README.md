@@ -131,7 +131,7 @@ However, for major changes or general discussions please contact [Dominik Widhal
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
 
 
 ## Links
