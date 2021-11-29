@@ -46,7 +46,7 @@ DC_N            = 5
 # number of sensor values for std-dev evaluation
 STDDEV_N        = 10
 # sensitivity of safe indicator
-SAFE_SENS       = 0.35
+SAFE_SENS       = 0.1
 
 # CSV output (0...disable/1...enable)
 CSV_OUTPUT      = 1

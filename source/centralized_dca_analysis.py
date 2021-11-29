@@ -48,7 +48,7 @@ DC_N            = 5
 # number of sensor values for std-dev evaluation
 STDDEV_N        = 10
 # sensitivity of safe indicator
-SAFE_SENS       = 0.35
+SAFE_SENS       = 0.1
 
 # use certain period (otherwise all data will be used)
 USE_PERIOD      = 1
