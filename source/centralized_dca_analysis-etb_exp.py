@@ -339,7 +339,9 @@ for row in csv_i:
         state = 0
         for dc in dcs:
             state = state + 1 if dc["context"]>=0 else state
-        context.append(state/len(dcs))
+        state = state/len(dcs)
+        context_t = 1 if state>0.5 else 0
+        context.append(context_t)
 
     # Increment line counter
     line_count += 1
