@@ -44,7 +44,7 @@ import matplotlib.dates as md
 
 ##### GLOBAL VARIABLES #####
 # dendritic cell lifetime/population
-DC_N            = 5
+DC_M            = 3
 # number of sensor values for std-dev evaluation
 STDDEV_N        = 10
 # sensitivity of safe indicator
@@ -381,7 +381,7 @@ for SNID in nodes:
             "context"   : context_t,
         })
         # If population is full, delete oldest DC
-        if len(dcs)>DC_N:
+        if len(dcs)>DC_M:
             dcs.pop(0)
         
 
