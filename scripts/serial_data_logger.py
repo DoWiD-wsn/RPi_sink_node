@@ -37,4 +37,3 @@ while True:
         logging.info(line)
     except:
         ser.flush()
-    time.sleep(1)
